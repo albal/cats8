@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cats-service
+  namespace: cats
+spec:
+  selector:
+    app: cats
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

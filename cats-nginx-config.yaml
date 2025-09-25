@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cats-nginx-config
+  namespace: cats
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        
+        # Main location serves our HTML page
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+            
+            # Disable caching for dynamic content
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Pragma "no-cache";
+            add_header Expires "0";
+        }
+        
+        # Health check endpoint
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
