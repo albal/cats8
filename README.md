@@ -224,7 +224,7 @@ kubectl describe configmap cats-html -n cats
 
 ## 📦 Helm Chart
 
-This repository includes a Helm chart for easy deployment and management. The chart is automatically packaged and published to GitHub Pages whenever changes are pushed to the main branch.
+This repository includes a Helm chart for easy deployment and management. The chart is automatically packaged and published to GitHub Pages whenever a new release is created. The chart version is automatically synchronized with the release tag.
 
 **Helm Repository**: https://albal.github.io/cats8
 
