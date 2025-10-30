@@ -1,0 +1,247 @@
+# Default values for cats8 chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas for the deployment
+replicaCount: 1
+
+# Container image configuration
+image:
+  # Image repository
+  repository: ghcr.io/albal/cats8
+  # Image pull policy
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: "latest"
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override the default name
+nameOverride: ""
+# Override the full name
+fullnameOverride: ""
+
+# Service configuration
+service:
+  # Service type (ClusterIP, NodePort, LoadBalancer)
+  type: ClusterIP
+  # Service port
+  port: 80
+  # Target container port
+  targetPort: 80
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity rules for pod assignment
+affinity: {}
+
+# Namespace to deploy into (if not specified, uses Helm release namespace)
+namespace: cats
+
+# Pod labels
+podLabels:
+  app: cats
+
+# Pod annotations
+podAnnotations: {}
+
+# Security context for the pod
+securityContext: {}
+
+# Container security context
+containerSecurityContext: {}
+
+# Liveness probe configuration
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ConfigMap data for HTML content
+htmlContent: |
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Random Cat Service</title>
+      <style>
+          body {
+              font-family: Arial, sans-serif;
+              text-align: center;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              margin: 0;
+              padding: 20px;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+          }
+          .container {
+              background: white;
+              border-radius: 15px;
+              padding: 30px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+              max-width: 800px;
+          }
+          h1 {
+              color: #333;
+              margin-bottom: 20px;
+          }
+          .cat-container {
+              margin: 20px 0;
+              position: relative;
+          }
+          .cat-image {
+              max-width: 100%;
+              max-height: 500px;
+              border-radius: 10px;
+              box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+          }
+          .refresh-btn {
+              background: #667eea;
+              color: white;
+              border: none;
+              padding: 15px 30px;
+              font-size: 16px;
+              border-radius: 25px;
+              cursor: pointer;
+              margin-top: 20px;
+              transition: all 0.3s;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+          .refresh-btn:hover {
+              background: #5568d3;
+              transform: translateY(-2px);
+              box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+          }
+          .refresh-btn:active {
+              transform: translateY(0);
+          }
+          .loading {
+              color: #667eea;
+              font-size: 18px;
+              margin: 20px 0;
+          }
+          .error {
+              color: #e74c3c;
+              font-size: 16px;
+              margin: 20px 0;
+          }
+          .info {
+              color: #666;
+              font-size: 14px;
+              margin-top: 20px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <h1>🐱 Random Cat Service</h1>
+          <p class="info">Enjoy random cat images from the internet!</p>
+          
+          <div class="cat-container">
+              <img id="catImage" class="cat-image" alt="Random Cat" />
+              <div id="loading" class="loading" style="display: none;">Loading cat...</div>
+              <div id="error" class="error" style="display: none;">Failed to load cat image. Please try again.</div>
+          </div>
+          
+          <button class="refresh-btn" onclick="loadCat()">Get New Cat! 🐱</button>
+          
+          <p class="info">Auto-refresh every 60 seconds</p>
+      </div>
+
+      <script>
+          function loadCat() {
+              const img = document.getElementById('catImage');
+              const loading = document.getElementById('loading');
+              const error = document.getElementById('error');
+              
+              // Show loading state
+              loading.style.display = 'block';
+              error.style.display = 'none';
+              img.style.display = 'none';
+              
+              // Generate random timestamp to avoid caching
+              const timestamp = new Date().getTime();
+              const catUrl = `https://cataas.com/cat?${timestamp}`;
+              
+              // Load the image
+              img.src = catUrl;
+              
+              img.onload = function() {
+                  loading.style.display = 'none';
+                  img.style.display = 'block';
+              };
+              
+              img.onerror = function() {
+                  loading.style.display = 'none';
+                  error.style.display = 'block';
+              };
+          }
+          
+          // Load initial cat
+          loadCat();
+          
+          // Auto-refresh every 60 seconds
+          setInterval(loadCat, 60000);
+      </script>
+  </body>
+  </html>
+
+# NGINX configuration
+nginxConfig: |
+  server {
+      listen 80;
+      server_name localhost;
+
+      location / {
+          root /usr/share/nginx/html;
+          index index.html;
+          
+          # Disable caching for dynamic content
+          add_header Cache-Control "no-cache, no-store, must-revalidate";
+          add_header Pragma "no-cache";
+          add_header Expires "0";
+      }
+
+      # Health check endpoint
+      location /health {
+          access_log off;
+          return 200 "healthy\n";
+          add_header Content-Type text/plain;
+      }
+
+      error_page 404 /index.html;
+  }

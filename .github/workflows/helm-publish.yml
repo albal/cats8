@@ -1,0 +1,189 @@
+name: Publish Helm Chart
+
+# Trigger on push to main branch or manual workflow dispatch
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/helm-publish.yml'
+  workflow_dispatch:
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  package-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Lint Helm chart
+        run: |
+          helm lint charts/cats8
+
+      - name: Create output directory
+        run: |
+          mkdir -p .helmrepo
+
+      - name: Checkout gh-pages branch
+        continue-on-error: true
+        run: |
+          # Try to fetch existing gh-pages branch
+          git fetch origin gh-pages:gh-pages || echo "gh-pages branch does not exist yet"
+          
+          # If gh-pages exists, checkout and copy index.yaml
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+            if [ -f index.yaml ]; then
+              cp index.yaml .helmrepo/index.yaml
+              echo "Existing index.yaml found and copied"
+            fi
+            git checkout -
+          else
+            echo "No existing gh-pages branch, will create new one"
+          fi
+
+      - name: Package Helm chart
+        run: |
+          # Package the chart
+          helm package charts/cats8 -d .helmrepo
+          
+          # Get chart info
+          CHART_VERSION=$(grep '^version:' charts/cats8/Chart.yaml | awk '{print $2}')
+          CHART_NAME=$(grep '^name:' charts/cats8/Chart.yaml | awk '{print $2}')
+          echo "Packaged ${CHART_NAME} version ${CHART_VERSION}"
+          
+          # Update or create index
+          REPO_URL="https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+          echo "Repository URL: ${REPO_URL}"
+          
+          if [ -f .helmrepo/index.yaml ]; then
+            echo "Merging with existing index.yaml"
+            helm repo index .helmrepo --url "${REPO_URL}" --merge .helmrepo/index.yaml
+          else
+            echo "Creating new index.yaml"
+            helm repo index .helmrepo --url "${REPO_URL}"
+          fi
+
+      - name: Deploy to GitHub Pages
+        run: |
+          # Create or switch to gh-pages branch
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+            # Remove old chart files but keep .git
+            git rm -rf . || true
+            git clean -fxd
+            git checkout HEAD -- .git
+          else
+            # Create orphan gh-pages branch
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+          fi
+          
+          # Copy packaged charts and index from .helmrepo to root
+          cp -r ../work/cats8/cats8/.helmrepo/* . || cp .helmrepo/* . || true
+          
+          # Ensure files are in the root
+          if [ -d ".helmrepo" ]; then
+            mv .helmrepo/* .
+            rmdir .helmrepo
+          fi
+          
+          # Create a simple index.html for the helm repo
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Cats8 Helm Repository</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 50px auto;
+                padding: 20px;
+                background: #f5f5f5;
+              }
+              .container {
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              h1 { color: #333; }
+              code {
+                background: #f4f4f4;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: monospace;
+              }
+              pre {
+                background: #f4f4f4;
+                padding: 15px;
+                border-radius: 5px;
+                overflow-x: auto;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>🐱 Cats8 Helm Repository</h1>
+              <p>This is a Helm chart repository for the Cats8 application.</p>
+              
+              <h2>Usage</h2>
+              <p>Add this repository to Helm:</p>
+              <pre><code>helm repo add cats8 https://albal.github.io/cats8
+          helm repo update</code></pre>
+              
+              <h2>Install the Chart</h2>
+              <pre><code>helm install my-cats cats8/cats8</code></pre>
+              
+              <h2>Available Charts</h2>
+              <p>View the <a href="index.yaml">index.yaml</a> for available chart versions.</p>
+              
+              <h2>Documentation</h2>
+              <p>Visit the <a href="https://github.com/albal/cats8">GitHub repository</a> for more information.</p>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          # Add and commit all files
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Publish Helm chart - $(date +'%Y-%m-%d %H:%M:%S')"
+            git push origin gh-pages --force
+            echo "Helm chart published to gh-pages"
+          fi
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ Helm chart successfully published to GitHub Pages"
+          echo "📦 Repository URL: https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+          echo ""
+          echo "To use this chart:"
+          echo "  helm repo add cats8 https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+          echo "  helm repo update"
+          echo "  helm install my-cats cats8/cats8"
