@@ -131,6 +131,9 @@ jobs:
           cp -r .helmrepo/* "$TEMP_HELM_DIR/"
           echo "Copied .helmrepo contents to $TEMP_HELM_DIR"
           
+          # Stash any local changes (like Chart.yaml version updates) before switching branches
+          git stash --include-untracked || true
+          
           # Create or switch to gh-pages branch
           if git show-ref --verify --quiet refs/heads/gh-pages; then
             git checkout gh-pages
