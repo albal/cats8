@@ -59,6 +59,19 @@ This command removes all the Kubernetes components associated with the chart and
 | `service.port`            | Service port                                    | `80`                     |
 | `service.targetPort`      | Target container port                           | `80`                     |
 
+### Ingress Parameters
+
+| Name                      | Description                                     | Value                    |
+| ------------------------- | ----------------------------------------------- | ------------------------ |
+| `ingress.enabled`         | Enable ingress resource creation                | `false`                  |
+| `ingress.className`       | Ingress class name (e.g., nginx, traefik)       | `""`                     |
+| `ingress.annotations`     | Annotations for the ingress resource            | `{}`                     |
+| `ingress.hostname`        | Hostname for the ingress resource               | `chart-example.local`    |
+| `ingress.path`            | Path for the ingress rule                       | `/`                      |
+| `ingress.pathType`        | Path type (Prefix, Exact, ImplementationSpecific) | `Prefix`               |
+| `ingress.tls.enabled`     | Enable TLS/HTTPS for ingress                    | `false`                  |
+| `ingress.tls.secretName`  | Secret name for TLS certificate                 | `""`                     |
+
 ### Resource Parameters
 
 | Name                      | Description                                     | Value                    |
@@ -136,7 +149,42 @@ helm install my-cats ./charts/cats8 --set service.type=NodePort
 
 **Using Ingress (recommended for production):**
 
-Create an Ingress resource separately or add it to the chart.
+Basic Ingress with nginx ingress controller:
+
+```bash
+helm install my-cats ./charts/cats8 \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hostname=cats.example.com
+```
+
+Ingress with TLS and cert-manager:
+
+```bash
+helm install my-cats ./charts/cats8 \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hostname=cats.example.com \
+  --set ingress.tls.enabled=true \
+  --set ingress.tls.secretName=cats-tls \
+  --set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-prod
+```
+
+Or using a values file:
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hostname: cats.example.com
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: true
+    secretName: cats-tls
+```
 
 ### Scaling
 
