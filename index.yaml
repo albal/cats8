@@ -3,10 +3,10 @@ entries:
   cats8:
   - apiVersion: v2
     appVersion: 1.0.0
-    created: "2025-10-30T19:09:15.048385566Z"
+    created: "2025-10-30T19:59:26.368740097Z"
     description: A Helm chart for deploying the Cats Service - a simple web application
       displaying random cat images
-    digest: 36b5b262d2d3891806ed1492fed0d93b356b338683910541019fe1d996d0f90a
+    digest: e125b8304f798f989aaece6f5bd1b1af7ca82442bee62def257003161a37f55b
     home: https://github.com/albal/cats8
     keywords:
     - cats
@@ -22,4 +22,4 @@ entries:
     urls:
     - https://albal.github.io/cats8/cats8-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-30T19:09:15.047719092Z"
+generated: "2025-10-30T19:59:26.367941453Z"
