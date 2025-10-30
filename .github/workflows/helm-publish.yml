@@ -1,7 +1,9 @@
 name: Publish Helm Chart
 
-# Trigger on push to main branch or manual workflow dispatch
+# Trigger on release published or manual workflow dispatch
 on:
+  release:
+    types: [published]
   push:
     branches:
       - main
@@ -35,15 +37,43 @@ jobs:
         with:
           version: 'v3.14.0'
 
+      - name: Determine if release and extract version
+        id: release_info
+        run: |
+          # Check if this is a release event
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            # Extract version from tag name (format: 1.2.3, not v1.2.3)
+            VERSION="${{ github.event.release.tag_name }}"
+            # Remove 'v' prefix if present (though requirements say it won't have it)
+            VERSION="${VERSION#v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Release version: $VERSION"
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "Not a release event - will build and test but not publish"
+          fi
+
+      - name: Update Chart version for release
+        if: steps.release_info.outputs.is_release == 'true'
+        run: |
+          VERSION="${{ steps.release_info.outputs.version }}"
+          echo "Updating Chart.yaml version to: $VERSION"
+          sed -i "s/^version:.*/version: $VERSION/" charts/cats8/Chart.yaml
+          echo "Updated Chart.yaml:"
+          grep '^version:' charts/cats8/Chart.yaml
+
       - name: Lint Helm chart
         run: |
           helm lint charts/cats8
 
       - name: Create output directory
+        if: steps.release_info.outputs.is_release == 'true'
         run: |
           mkdir -p .helmrepo
 
       - name: Checkout gh-pages branch
+        if: steps.release_info.outputs.is_release == 'true'
         continue-on-error: true
         run: |
           # Try to fetch existing gh-pages branch
@@ -62,6 +92,7 @@ jobs:
           fi
 
       - name: Package Helm chart
+        if: steps.release_info.outputs.is_release == 'true'
         run: |
           # Package the chart
           helm package charts/cats8 -d .helmrepo
@@ -84,6 +115,7 @@ jobs:
           fi
 
       - name: Deploy to GitHub Pages
+        if: steps.release_info.outputs.is_release == 'true'
         run: |
           # Move .helmrepo to temp location before switching branches
           # This prevents it from being removed by git clean
@@ -193,10 +225,18 @@ jobs:
       - name: Summary
         if: success()
         run: |
-          echo "✅ Helm chart successfully published to GitHub Pages"
-          echo "📦 Repository URL: https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
-          echo ""
-          echo "To use this chart:"
-          echo "  helm repo add cats8 https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
-          echo "  helm repo update"
-          echo "  helm install my-cats cats8/cats8"
+          if [ "${{ steps.release_info.outputs.is_release }}" = "true" ]; then
+            echo "✅ Helm chart successfully published to GitHub Pages"
+            echo "📦 Repository URL: https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+            echo "📌 Version: ${{ steps.release_info.outputs.version }}"
+            echo ""
+            echo "To use this chart:"
+            echo "  helm repo add cats8 https://$(echo $GITHUB_REPOSITORY | cut -d'/' -f1).github.io/$(echo $GITHUB_REPOSITORY | cut -d'/' -f2)"
+            echo "  helm repo update"
+            echo "  helm install my-cats cats8/cats8"
+          else
+            echo "✅ Helm chart linted and tested successfully"
+            echo "📝 Chart was not published (not a release event)"
+            echo ""
+            echo "To publish this chart, create a release with a tag in format: 1.2.3"
+          fi
