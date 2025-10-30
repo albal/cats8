@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  cats8:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2025-10-30T19:09:15.048385566Z"
+    description: A Helm chart for deploying the Cats Service - a simple web application
+      displaying random cat images
+    digest: 36b5b262d2d3891806ed1492fed0d93b356b338683910541019fe1d996d0f90a
+    home: https://github.com/albal/cats8
+    keywords:
+    - cats
+    - nginx
+    - demo
+    maintainers:
+    - name: albal
+      url: https://github.com/albal
+    name: cats8
+    sources:
+    - https://github.com/albal/cats8
+    type: application
+    urls:
+    - https://albal.github.io/cats8/cats8-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-10-30T19:09:15.047719092Z"
