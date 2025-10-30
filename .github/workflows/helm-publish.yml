@@ -99,12 +99,11 @@ jobs:
           fi
           
           # Copy packaged charts and index from .helmrepo to root
-          cp -r ../work/cats8/cats8/.helmrepo/* . || cp .helmrepo/* . || true
-          
-          # Ensure files are in the root
-          if [ -d ".helmrepo" ]; then
-            mv .helmrepo/* .
-            rmdir .helmrepo
+          if [ -d "$GITHUB_WORKSPACE/.helmrepo" ]; then
+            cp -r "$GITHUB_WORKSPACE/.helmrepo"/* .
+          else
+            echo "Error: .helmrepo directory not found"
+            exit 1
           fi
           
           # Create a simple index.html for the helm repo

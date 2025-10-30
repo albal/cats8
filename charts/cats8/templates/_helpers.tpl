@@ -48,14 +48,3 @@ app.kubernetes.io/name: {{ include "cats8.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app: cats
 {{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "cats8.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "cats8.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
