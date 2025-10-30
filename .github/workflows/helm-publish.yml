@@ -85,6 +85,12 @@ jobs:
 
       - name: Deploy to GitHub Pages
         run: |
+          # Move .helmrepo to temp location before switching branches
+          # This prevents it from being removed by git clean
+          TEMP_HELM_DIR=$(mktemp -d)
+          cp -r .helmrepo/* "$TEMP_HELM_DIR/"
+          echo "Copied .helmrepo contents to $TEMP_HELM_DIR"
+          
           # Create or switch to gh-pages branch
           if git show-ref --verify --quiet refs/heads/gh-pages; then
             git checkout gh-pages
@@ -97,11 +103,12 @@ jobs:
             git rm -rf . || true
           fi
           
-          # Copy packaged charts and index from .helmrepo to root
-          if [ -d "$GITHUB_WORKSPACE/.helmrepo" ]; then
-            cp -r "$GITHUB_WORKSPACE/.helmrepo"/* .
+          # Copy packaged charts and index from temp location to root
+          if [ -d "$TEMP_HELM_DIR" ] && [ "$(ls -A $TEMP_HELM_DIR)" ]; then
+            cp -r "$TEMP_HELM_DIR"/* .
+            echo "Copied charts from temp location to gh-pages branch"
           else
-            echo "Error: .helmrepo directory not found"
+            echo "Error: Temp helm directory not found or empty"
             exit 1
           fi
           
