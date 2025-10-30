@@ -88,6 +88,14 @@ jobs:
           # Move .helmrepo to temp location before switching branches
           # This prevents it from being removed by git clean
           TEMP_HELM_DIR=$(mktemp -d)
+          trap "rm -rf $TEMP_HELM_DIR" EXIT
+          
+          # Verify .helmrepo exists and has content before copying
+          if [ ! -d .helmrepo ] || [ -z "$(ls -A .helmrepo 2>/dev/null)" ]; then
+            echo "Error: .helmrepo directory not found or empty"
+            exit 1
+          fi
+          
           cp -r .helmrepo/* "$TEMP_HELM_DIR/"
           echo "Copied .helmrepo contents to $TEMP_HELM_DIR"
           
