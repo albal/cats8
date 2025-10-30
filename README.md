@@ -46,11 +46,66 @@ The deployment consists of the following Kubernetes resources:
 
 ## 🚀 Deployment Instructions
 
-### Prerequisites
+You can deploy the Cats8 application using either Helm (recommended) or raw Kubernetes manifests.
+
+### Option 1: Deploy with Helm (Recommended)
+
+#### Prerequisites
+- Kubernetes cluster access
+- `kubectl` configured to communicate with your cluster
+- Helm 3.0+ installed
+
+#### Quick Start with Helm
+
+1. **Add the Helm repository**:
+   ```bash
+   helm repo add cats8 https://albal.github.io/cats8
+   helm repo update
+   ```
+
+2. **Install the chart**:
+   ```bash
+   helm install my-cats8 cats8/cats8
+   ```
+
+3. **Verify the deployment**:
+   ```bash
+   kubectl get pods -n cats
+   kubectl get services -n cats
+   ```
+
+4. **Access the application**:
+   ```bash
+   kubectl port-forward -n cats service/my-cats8 8080:80
+   ```
+   Then visit: http://localhost:8080
+
+For more configuration options and details, see the [Helm chart documentation](charts/cats8/README.md).
+
+#### Customizing the Helm Installation
+
+You can customize the installation by providing your own values:
+
+```bash
+# Use a custom image
+helm install my-cats8 cats8/cats8 \
+  --set image.repository=ghcr.io/albal/cats8 \
+  --set image.tag=v1.0.0
+
+# Scale to multiple replicas
+helm install my-cats8 cats8/cats8 --set replicaCount=3
+
+# Use LoadBalancer service
+helm install my-cats8 cats8/cats8 --set service.type=LoadBalancer
+```
+
+### Option 2: Deploy with Raw Manifests
+
+#### Prerequisites
 - Kubernetes cluster access
 - `kubectl` configured to communicate with your cluster
 
-### Deploy the Application
+#### Deploy the Application
 
 1. **Create the namespace** (if it doesn't exist):
    ```bash
@@ -183,7 +238,61 @@ kubectl describe configmap cats-html -n cats
 - ✅ Lightweight NGINX-based serving
 - ✅ Kubernetes-native configuration via ConfigMaps
 - ✅ Resource limits for cluster efficiency
+- ✅ Helm chart for easy deployment
+- ✅ Automated chart publishing via GitHub Actions
+
+## 📦 Helm Chart Repository
+
+This repository includes a Helm chart that is automatically published to GitHub Pages. The chart is available at:
+
+```
+https://albal.github.io/cats8
+```
+
+### Adding the Helm Repository
+
+To use the Helm chart, add the repository to your Helm installation:
+
+```bash
+helm repo add cats8 https://albal.github.io/cats8
+helm repo update
+```
+
+### Installing from the Repository
+
+Once the repository is added, you can install the chart:
+
+```bash
+helm install my-cats8 cats8/cats8
+```
+
+### Publishing Updates
+
+The Helm chart is automatically packaged and published to the GitHub Pages (`gh-pages` branch) whenever changes are pushed to the `main` branch under the `charts/` directory. The GitHub Actions workflow:
+
+1. Lints the Helm chart
+2. Packages the chart as a `.tgz` file
+3. Updates the Helm repository index (`index.yaml`)
+4. Publishes to the `gh-pages` branch
+5. Makes it available via GitHub Pages at `https://albal.github.io/cats8`
+
+### Local Chart Development
+
+For local development and testing of the Helm chart:
+
+```bash
+# Package the chart locally
+./scripts/package_chart.sh
+
+# Install from local directory
+helm install my-cats8 ./charts/cats8
+
+# Or install from the packaged file
+helm install my-cats8 ./.helmrepo/cats8-*.tgz
+```
+
+See the [Helm chart README](charts/cats8/README.md) for detailed documentation on chart configuration and usage.
 
 ---
 
-*This deployment demonstrates a simple but complete web application running on Kubernetes, showcasing ConfigMaps, Deployments, Services, and basic web development practices.*
+*This deployment demonstrates a simple but complete web application running on Kubernetes, showcasing ConfigMaps, Deployments, Services, Helm charts, and automated CI/CD practices.*

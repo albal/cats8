@@ -1,0 +1,120 @@
+name: Publish Helm Chart
+
+# Trigger on push to main branch or manual workflow dispatch
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+  workflow_dispatch:
+
+# Set permissions for GITHUB_TOKEN
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  publish-helm-chart:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper versioning
+
+      # Step 2: Configure Git
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      # Step 3: Install Helm
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      # Step 4: Create package directory
+      - name: Create package directory
+        run: mkdir -p .helmrepo
+
+      # Step 5: Fetch existing index from gh-pages (if exists)
+      - name: Fetch existing Helm index
+        run: |
+          # Try to fetch the gh-pages branch
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "gh-pages branch exists, fetching existing index..."
+            git fetch origin gh-pages
+            
+            # Check if index.yaml exists in gh-pages
+            if git show origin/gh-pages:index.yaml > /dev/null 2>&1; then
+              git show origin/gh-pages:index.yaml > .helmrepo/index.yaml
+              echo "Existing index.yaml fetched successfully"
+            else
+              echo "No index.yaml found in gh-pages branch"
+            fi
+          else
+            echo "gh-pages branch does not exist yet, will create it"
+          fi
+
+      # Step 6: Lint the Helm chart
+      - name: Lint Helm chart
+        run: |
+          helm lint charts/cats8
+
+      # Step 7: Package the Helm chart
+      - name: Package Helm chart
+        run: |
+          helm package charts/cats8 -d .helmrepo
+
+      # Step 8: Update repository index (merge with existing)
+      - name: Update Helm repository index
+        run: |
+          helm repo index .helmrepo --url https://albal.github.io/cats8 --merge .helmrepo/index.yaml
+
+      # Step 9: Deploy to GitHub Pages (gh-pages branch)
+      - name: Deploy to GitHub Pages
+        run: |
+          # Create or checkout gh-pages branch
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            git checkout gh-pages
+            git pull origin gh-pages
+          else
+            # Create orphan gh-pages branch if it doesn't exist
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+          
+          # Copy packaged charts and index
+          cp -r .helmrepo/* .
+          
+          # Remove the .helmrepo directory from the branch
+          rm -rf .helmrepo
+          
+          # Add all chart files
+          git add *.tgz index.yaml
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Helm chart repository (automated)"
+            git push origin gh-pages
+          fi
+          
+          # Return to original branch
+          git checkout -
+
+      # Step 10: Summary
+      - name: Summary
+        run: |
+          echo "✅ Helm chart published successfully!"
+          echo "📦 Chart repository: https://albal.github.io/cats8"
+          echo ""
+          echo "To use this chart:"
+          echo "  helm repo add cats8 https://albal.github.io/cats8"
+          echo "  helm repo update"
+          echo "  helm install my-cats8 cats8/cats8"

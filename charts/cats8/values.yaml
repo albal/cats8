@@ -1,0 +1,60 @@
+# Default values for cats8.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas for the deployment
+replicaCount: 1
+
+# Image configuration
+image:
+  # The container image repository
+  repository: nginx
+  # The image pull policy
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: "alpine"
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+
+# Override the name of the chart
+nameOverride: ""
+# Override the full name of the resources
+fullnameOverride: ""
+
+# Service configuration
+service:
+  # Service type (ClusterIP, NodePort, LoadBalancer)
+  type: ClusterIP
+  # Service port
+  port: 80
+  # Target port on the container
+  targetPort: 80
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity for pod assignment
+affinity: {}
+
+# Namespace to deploy into (optional)
+# If not set, will use the namespace from the kubectl context
+namespace: cats
+
+# Labels to apply to all resources
+labels: {}
+
+# Annotations to apply to all resources
+annotations: {}
