@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cats8.fullname" . }}-html
+  labels:
+    {{- include "cats8.labels" . | nindent 4 }}
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{ .Values.html.title }}</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0;
+                padding: 20px;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .container {
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                max-width: 800px;
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 20px;
+            }
+            .cat-container {
+                margin: 20px 0;
+                position: relative;
+            }
+            .cat-image {
+                max-width: 100%;
+                max-height: 500px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            }
+            .refresh-btn {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                margin-top: 20px;
+                transition: background 0.3s;
+            }
+            .refresh-btn:hover {
+                background: #764ba2;
+            }
+            .loading {
+                display: none;
+                color: #666;
+                font-style: italic;
+            }
+            .error-msg {
+                color: #e74c3c;
+                font-style: italic;
+                margin: 20px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🐱 {{ .Values.html.title }}</h1>
+            <p>Fresh cat images fetched from cataas.com every time you visit!</p>
+            <div class="cat-container">
+                <img id="catImage" class="cat-image" src="{{ .Values.html.catApiUrl }}" alt="Random Cat" onload="hideLoading()" onerror="showError()" />
+                <div class="loading" id="loading">Fetching a new cat...</div>
+                <div class="error-msg" id="error" style="display: none;">Couldn't load cat image 😿</div>
+            </div>
+            <button class="refresh-btn" onclick="refreshCat()">Get New Cat! 🐾</button>
+            <p><small>Powered by <a href="https://cataas.com" target="_blank">cataas.com</a></small></p>
+        </div>
+
+        <script>
+            function refreshCat() {
+                const img = document.getElementById('catImage');
+                const loading = document.getElementById('loading');
+                const error = document.getElementById('error');
+                
+                // Show loading state
+                loading.style.display = 'block';
+                img.style.display = 'none';
+                error.style.display = 'none';
+                
+                // Add timestamp to force refresh and get a new cat
+                const timestamp = new Date().getTime();
+                img.src = '{{ .Values.html.catApiUrl }}?' + timestamp;
+            }
+            
+            function hideLoading() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('catImage').style.display = 'block';
+                document.getElementById('error').style.display = 'none';
+            }
+            
+            function showError() {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('catImage').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+            }
+            
+            // Auto-refresh every {{ .Values.html.refreshInterval }} milliseconds
+            setInterval(refreshCat, {{ .Values.html.refreshInterval }});
+            
+            // Show loading initially
+            document.getElementById('loading').style.display = 'block';
+        </script>
+    </body>
+    </html>

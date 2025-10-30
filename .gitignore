@@ -1,0 +1,6 @@
+# Helm packaging output
+gh-pages/
+
+# Temporary files
+*.tmp
+*.log

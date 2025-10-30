@@ -46,6 +46,35 @@ The deployment consists of the following Kubernetes resources:
 
 ## 🚀 Deployment Instructions
 
+### Option 1: Deploy with Helm (Recommended)
+
+The easiest way to deploy cats8 is using our Helm chart:
+
+#### Add the Helm repository
+
+```bash
+helm repo add cats8 https://albal.github.io/cats8
+helm repo update
+```
+
+#### Install the chart
+
+```bash
+helm install my-cats8 cats8/cats8
+```
+
+Or with custom values:
+
+```bash
+helm install my-cats8 cats8/cats8 \
+  --set replicaCount=2 \
+  --set image.tag=latest
+```
+
+For more configuration options, see the [Helm chart documentation](charts/cats8/README.md).
+
+### Option 2: Deploy with kubectl
+
 ### Prerequisites
 - Kubernetes cluster access
 - `kubectl` configured to communicate with your cluster
@@ -152,6 +181,43 @@ Or delete individual resources:
 kubectl delete deployment cats-deployment -n cats
 kubectl delete service cats-service -n cats
 kubectl delete configmap cats-html cats-nginx-config -n cats
+```
+
+## 📦 Helm Repository
+
+This project provides a Helm chart for easy deployment. The chart is automatically packaged and published to GitHub Pages.
+
+### Helm Chart Publishing
+
+The Helm chart is automatically published to the `gh-pages` branch when changes are pushed to the `main` branch. The GitHub Actions workflow:
+
+1. Lints the Helm chart for errors
+2. Packages the chart into a `.tgz` file
+3. Merges with the existing `index.yaml` from `gh-pages` (idempotent)
+4. Publishes to `https://albal.github.io/cats8`
+
+You can manually trigger the workflow from the Actions tab or by pushing changes to the `charts/` directory.
+
+### Using the Helm Repository
+
+```bash
+# Add the repository
+helm repo add cats8 https://albal.github.io/cats8
+
+# Update repositories
+helm repo update
+
+# Search for available charts
+helm search repo cats8
+
+# Install the chart
+helm install my-cats8 cats8/cats8
+
+# Upgrade an existing installation
+helm upgrade my-cats8 cats8/cats8
+
+# Uninstall
+helm uninstall my-cats8
 ```
 
 ## 🛠️ Troubleshooting

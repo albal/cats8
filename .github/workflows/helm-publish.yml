@@ -1,0 +1,129 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/helm-publish.yml'
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/helm-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Lint Helm chart
+        run: |
+          helm lint charts/cats8
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p gh-pages
+          helm package charts/cats8 --destination gh-pages
+
+      - name: Checkout gh-pages branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Try to fetch gh-pages branch
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "gh-pages branch exists, fetching..."
+            git fetch origin gh-pages
+            git checkout gh-pages
+            
+            # Copy existing packages and index
+            mkdir -p /tmp/gh-pages-backup
+            if [ -f index.yaml ]; then
+              cp index.yaml /tmp/gh-pages-backup/
+            fi
+            cp -r *.tgz /tmp/gh-pages-backup/ 2>/dev/null || true
+            
+            # Switch back to main and prepare gh-pages
+            git checkout main
+            git checkout --orphan gh-pages-new
+            git rm -rf .
+            
+            # Restore existing packages
+            cp -r /tmp/gh-pages-backup/* . 2>/dev/null || true
+          else
+            echo "gh-pages branch does not exist, creating new..."
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+          
+          # Copy newly packaged chart
+          cp gh-pages/*.tgz .
+          
+          # Generate/update index
+          if [ -f index.yaml ]; then
+            echo "Merging with existing index.yaml..."
+            helm repo index . --url https://albal.github.io/cats8 --merge index.yaml
+          else
+            echo "Creating new index.yaml..."
+            helm repo index . --url https://albal.github.io/cats8
+          fi
+          
+          # Create README for gh-pages
+          cat > README.md << 'EOF'
+          # cats8 Helm Repository
+          
+          This branch contains the packaged Helm charts for cats8.
+          
+          ## Usage
+          
+          Add this Helm repository:
+          
+          ```bash
+          helm repo add cats8 https://albal.github.io/cats8
+          helm repo update
+          ```
+          
+          Install the chart:
+          
+          ```bash
+          helm install my-cats8 cats8/cats8
+          ```
+          
+          For more information, see the [main repository](https://github.com/albal/cats8).
+          EOF
+          
+          # Commit and push
+          git add .
+          git commit -m "Publish Helm chart $(date +'%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+          
+          # If we created a new branch, delete the old one first
+          if git show-ref --verify --quiet refs/heads/gh-pages-new; then
+            git branch -D gh-pages 2>/dev/null || true
+            git branch -m gh-pages-new gh-pages
+          fi
+          
+          git push origin gh-pages --force
+
+      - name: Upload chart artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: gh-pages/*.tgz
+          retention-days: 7
