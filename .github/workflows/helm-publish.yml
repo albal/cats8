@@ -91,7 +91,6 @@ jobs:
             # Remove old chart files but keep .git
             git rm -rf . || true
             git clean -fxd
-            git checkout HEAD -- .git
           else
             # Create orphan gh-pages branch
             git checkout --orphan gh-pages
